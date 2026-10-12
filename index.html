@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Музейный Аудио-Гид</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 50px 20px;
+      background: #111;
+      color: #fff;
+    }
+    .card {
+      background: #222;
+      border: 2px solid #4CAF50;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      margin: 0 auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    h1 { color: #4CAF50; font-size: 26px; margin-bottom: 20px; }
+    p { font-size: 18px; color: #ccc; line-height: 1.5; }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    button:active { background: #45a049; }
+    #status { margin-top: 15px; font-size: 14px; color: #888; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Музейлік Аудио-Гид</h1>
+    <p id="instruction">Жұмысты бастау үшін төменгі батырманы басыңыз (дыбысты қосу үшін).</p>
+    <button onclick="unlockAudio()">Дыбысты қосу / Старт</button>
+    <div id="status">Күйі: Күтуде...</div>
+  </div>
+
+  <audio id="player"></audio>
+
+  <script>
+    // Вставьте сюда адрес вашего сервера на Render
+    const serverUrl = "https://esp32-ai-robot-server.onrender.com/latest-audio";
+    
+    let lastAudioUrl = "";
+    let audioUnlocked = false;
+
+    function unlockAudio() {
+      audioUnlocked = true;
+      document.getElementById("instruction").innerText = "Робот дайын. Экспонат туралы ақпарат автоматты түрде дыбысталады...";
+      document.getElementById("status").innerText = "Күйі: Тыңдалуда...";
+      
+      // Проигрываем пустой звук для разблокировки аудио в браузере телефона
+      let player = document.getElementById("player");
+      player.play().catch(() => {});
+    }
+
+    // Каждые 3 секунды проверяем сервер на наличие нового аудиофайла
+    setInterval(async function() {
+      if (!audioUnlocked) return;
+
+      try {
+        let response = await fetch(serverUrl);
+        if (!response.ok) return;
+
+        let blob = await response.blob();
+        let audioUrl = URL.createObjectURL(blob);
+
+        // Если файл новый (отличается от предыдущего), запускаем воспроизведение
+        if (audioUrl !== lastAudioUrl) {
+          lastAudioUrl = audioUrl;
+          let player = document.getElementById("player");
+          player.src = audioUrl;
+          player.play().catch(err => console.log("Қате:", err));
+          document.getElementById("status").innerText = "Күйі: Сипаттама оқылуда...";
+        }
+      } catch (err) {
+        // Ошибки сети тихо пропускаем
+      }
+    }, 3000);
+  </script>
+
+</body>
+</html>
